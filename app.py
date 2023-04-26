@@ -18,7 +18,6 @@ def  perform_validations():
     data_dict = pyspark_result.verfication_data()
 
     # sending the data to the mongodb to store 
-
     store = insert_data(data_dict)
     return jsonify(store)
 
@@ -27,7 +26,7 @@ def  perform_validations():
 @app.route("/getdata",methods=["get"])
 def get_data():
     path = request.args.get('path')
-    return path
+    return  jsonify(find_data(path))
    
 
 

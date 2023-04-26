@@ -18,7 +18,7 @@ def insert_data(data):
     
 def find_data(data):
     try:
-        get = collection.find_one(data,{"_id":0,"path":0})
+        get = collection.find_one({"path":data["path"]},{"_id":0,"path":0})
         if get == None:
             return ({"Meassage":"Their is no data with the specified path",
                         "Success": True,
