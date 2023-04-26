@@ -16,16 +16,18 @@ def  perform_validations():
     # calling the pyspark operation and validating the file by passing the path as the parameter
     pyspark_result = PysparkImplementation(marsh_validations["path"])
     data_dict = pyspark_result.verfication_data()
-
+   
     # sending the data to the mongodb to store 
-    store = insert_data(data_dict)
-    return jsonify(store)
-
-    
+    if(data_dict[1]):  # checkin whether the pyspark operations are done properly 
+        store = insert_data(data_dict[0])
+        return jsonify(store)
+    else:
+        return jsonify(data_dict[0])
+  
 
 @app.route("/getdata",methods=["get"])
 def get_data():
-    path = request.args.get('path')
+    path = request.args.get('path') # getting the path to find in the url 
     return  jsonify(find_data(path))
    
 
