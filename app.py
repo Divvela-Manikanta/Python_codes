@@ -3,6 +3,7 @@ from DataclassScript import Valid
 from MarshmallowValidations import valid_method
 from  PysparkOperations import PysparkImplementation
 from DatabaseOperations import find_data,insert_data
+from multiprocessing import Pool
 
 
 app = Flask(__name__)
@@ -33,7 +34,8 @@ def get_data():
 
 
 if __name__ == "__main__":
-    app.run(debug=True,port = 5000)
-
+    with Pool() as p:
+        p.map(app.run(debug=True,port = 7000))
+    
 
 
