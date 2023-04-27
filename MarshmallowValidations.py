@@ -6,10 +6,8 @@ class Validations(Schema):
 
 def valid_method(response_dc):
     try:
-        obj_val = Validations()
-        loded_data = obj_val.dump(response_dc)
-        valid_data = obj_val.load(loded_data)
-        return valid_data
+        Validations().validate(response_dc)      
+        return response_dc
     
     except ValidationError as ex:
         return({"Message":ex.messages,
