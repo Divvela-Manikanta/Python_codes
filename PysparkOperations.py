@@ -19,57 +19,49 @@ class PysparkImplementation():
             # Inserting entire data in the verfication_result
             verfication_result ={} 
             verfication_result["path"] = self.path
-            df = spark.read.csv(fr"{self.path}",header=True)
-            
-            # check whether containg null values based columns using for loop 
-            df_counts = df.select([count(when(isnan(c) | col(c).isNull() | col(c).contains("None"), c)).alias(c) for c in df.columns])
-            df_pands = df_counts.toPandas()
-            mydict = df_pands.to_dict(orient='records')
-            verfication_result['Count of Null'] = mydict[0]
+            df = spark.read.csv(fr"{self.path}",header=True,inferSchema=True)
 
-            # check count for distinct values based columns using for loop 
-            df_distinct_count = df.select([countDistinct(col(col_name)).alias(col_name) for col_name in df.columns])
-            df_pands = df_distinct_count.toPandas()
-            mydict = df_pands.to_dict(orient='records')
-            verfication_result['Count for distinct values'] = mydict[0]
+            # checking the datatypes column and inserting the data to a temp dict and assign the whole data to main dict
             
-            # checking the datatypes column and inserting the data to a temp dict and assign the whole data to main dict 
-            temp = {}
-            data = df.dtypes # list conting tuples
-            for value in data:
-                temp[value[0]] = value[1]
-            verfication_result["Data Types For colums"] = temp 
-
             #checking the count for distinct values,finding min and max length of column,and finding the datatypes count like integer,float and boolean
-            temp_count_data ={}
-            temp_min_max = {}
-            temp_data = {}
-            df.createOrReplaceTempView("Table")
             for col_data in df.columns:
-                if(verfication_result["Count for distinct values"][col_data]<=100):
-                    df_sql = spark.sql(f"select {col_data} as data ,count({col_data}) as count from Table group by {col_data}")
-                    df_sql = df_sql.dropna()
+                df_counts = df.select([count(when(isnan(col_data) | col(col_data).isNull() | col(col_data).contains("None"), col_data)).alias(col_data)])
+                df_pands = df_counts.toPandas()
+                mydict = df_pands.to_dict(orient='records')[0]
+                verfication_result[col_data] = {}    # creating the empy dict for each column 
+                verfication_result[col_data]["Count_for_null_values"] = mydict[col_data]
+
+                df_distinct_count = df.select([countDistinct(col(col_data)).alias(col_data)])
+                df_pands = df_distinct_count.toPandas()
+                mydict = df_pands.to_dict(orient='records')[0]
+                verfication_result[col_data]["count_of_distinct_values"] = mydict[col_data]
+
+                if verfication_result[col_data]["count_of_distinct_values"] <=100 :
+                    df_temp = df.groupby(col_data).agg(count('*').alias('count'))
+                    df_temp=df_temp.withColumnRenamed(col_data,"value")
+                    df_sql = df_temp.dropna()
                     df_pandas = df_sql.toPandas()
-                    temp_count_data[col_data] = df_pandas.to_dict(orient='records')
+                    verfication_result[col_data]["Count_of_distinct_data"] = df_pandas.to_dict(orient='records')
 
                 # for min length and max length
                 min_length = df.agg(min(length(col_data))).collect()[0][0]
                 max_length = df.agg(max(length(col_data))).collect()[0][0]
-                temp_min_max[col_data] = {"min":min_length,"max":max_length}
+                verfication_result[col_data]["Minimum_and_Maximum_Length"] = {"min":min_length,"max":max_length}
                 
-                # for count of integer,float,boolean 
+                # # # for count of integer,float,boolean 
                 integer_count = df.filter(col(col_data).rlike("^[0-9]+$")).count()
                 float_count = df.filter(col(col_data).rlike("^\\d+\\.\\d+$")).count()
                 boolean_count = df.filter((df[col_data] == "True") | (df[col_data] == "False")).count()
-                temp_data[col_data] = {"Integer Count":integer_count,"Float Count":float_count,"Boolean count":boolean_count}
+                verfication_result[col_data]["Count_of_inner_data_types"]= {"Integer Count":integer_count,"Float Count":float_count,"Boolean count":boolean_count}
 
-            verfication_result["Count of data in each column"] = temp_count_data 
-            verfication_result["Minimum and Maximum Length column wise"] = temp_min_max 
-            verfication_result["Count based on data types"] = temp_data
-        
+            data = df.dtypes # list conting tuples
+            for value in data:
+                verfication_result[value[0]]["Data_Types"] =  value[1]
+
             return [verfication_result,1]
+       
         except Exception as ex:
             return [{"message":"unable to process the request try with another path",
-                     "status code":500
+                    "status code":500
             },0]
-  
+
