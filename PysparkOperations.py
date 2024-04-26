@@ -1,6 +1,5 @@
 from pyspark.sql import SparkSession 
 from pyspark.sql.functions import count,isnan,col,when,countDistinct,length,min,max,regexp_replace
-import pandas as pd
 
 spark = SparkSession.builder.appName("check").getOrCreate()
 
